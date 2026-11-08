@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>urn:uuid:2853dacf-ed79-42f5-8e8a-a7bb3d1ae6a2</id>
+  <title>Calibre-Web</title>
+  <entry>
+    <title>A</title>
+    <id>/opds/books/letter/a</id>
+    <link rel="subsection" href="/opds/books/letter/a" type="application/atom+xml;profile=opds-catalog"/>
+  </entry>
+</feed>

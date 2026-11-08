@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>urn:uuid:2853dacf-ed79-42f5-8e8a-a7bb3d1ae6a2</id>
+  <title>Calibre-Web</title>
+  <entry>
+    <title>Anonymous Work</title>
+    <id>urn:uuid:44444444-4444-4444-4444-444444444444</id>
+    <link rel="http://opds-spec.org/acquisition" href="/opds/download/4/pdf/" type="application/pdf"/>
+  </entry>
+</feed>

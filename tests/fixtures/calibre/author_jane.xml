@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
+  <id>calibre:category:authors:1</id>
+  <title>Jane Doe</title>
+  <entry>
+    <title>The Left Hand: A Novel</title>
+    <author><name>Jane Doe</name></author>
+    <author><name>John Roe</name></author>
+    <id>urn:uuid:11111111-1111-1111-1111-111111111111</id>
+    <link type="application/epub+zip" href="/get/epub/1/Calibre_Library" rel="http://opds-spec.org/acquisition"/>
+    <link type="application/pdf" href="/get/pdf/1/Calibre_Library" rel="http://opds-spec.org/acquisition"/>
+  </entry>
+</feed>

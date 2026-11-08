@@ -1,0 +1,29 @@
+# Copy to config.toml and edit. Relative paths are relative to this file.
+
+# Where downloaded books go, as <output_dir>/<Author>/<Title>/<Title>.<ext>
+output_dir = "~/Books/opds-mirror"
+
+# Folders of books you already own. Books found here are never downloaded.
+library_dirs = ["~/Books/Library"]
+
+# Where the duplicate index lives (default: <output_dir>/.opds-mirror/index.sqlite).
+# index_path = "~/.local/share/opds-mirror/index.sqlite"
+
+# A full log of each run, rotated at 5 MB. Leave out for no log file.
+log_file = "~/Books/opds-mirror/.opds-mirror/mirror.log"
+
+# Seconds to wait between requests, to go easy on the servers.
+request_delay = 0.2
+
+# Seconds before a request times out.
+timeout = 60
+
+# One block per server. For Calibre, add ?library_id=<name> to mirror a
+# library other than the default; use one block per library.
+[[servers]]
+name = "calibre"
+url = "http://calibre.local:8080/opds"
+
+[[servers]]
+name = "calibre-web"
+url = "http://calibre-web.local:8083/opds"

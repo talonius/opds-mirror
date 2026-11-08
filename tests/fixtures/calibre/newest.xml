@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/" xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>calibre-navcatalog:newest</id>
+  <title>By Newest</title>
+  <link rel="start" href="/opds" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="up" href="/opds" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="next" href="/opds/navcatalog/4f6e6577657374?offset=1" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <entry>
+    <title>The Left Hand: A Novel</title>
+    <author><name>Jane Doe</name></author>
+    <author><name>John Roe</name></author>
+    <id>urn:uuid:11111111-1111-1111-1111-111111111111</id>
+    <dc:identifier>urn:uuid:11111111-1111-1111-1111-111111111111</dc:identifier>
+    <dc:identifier>urn:isbn:978-0-306-40615-7</dc:identifier>
+    <link type="application/epub+zip" href="/get/epub/1/Calibre_Library" rel="http://opds-spec.org/acquisition"/>
+    <link type="application/pdf" href="/get/pdf/1/Calibre_Library" rel="http://opds-spec.org/acquisition"/>
+    <link type="image/jpeg" href="/get/cover/1/Calibre_Library" rel="http://opds-spec.org/cover"/>
+    <link type="image/jpeg" href="/get/thumb/1/Calibre_Library" rel="http://opds-spec.org/thumbnail"/>
+    <link type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="/opds/category/617574686f7273/31" rel="related" title="All books by Jane Doe"/>
+  </entry>
+</feed>

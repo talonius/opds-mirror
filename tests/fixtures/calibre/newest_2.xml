@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
+  <id>calibre-navcatalog:newest</id>
+  <title>By Newest</title>
+  <link rel="previous" href="/opds/navcatalog/4f6e6577657374" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <entry>
+    <title>CON</title>
+    <author><name>Ann Other</name></author>
+    <id>urn:uuid:22222222-2222-2222-2222-222222222222</id>
+    <link type="application/x-mobipocket-ebook" href="/get/mobi/2/Calibre_Library" rel="http://opds-spec.org/acquisition"/>
+  </entry>
+</feed>
