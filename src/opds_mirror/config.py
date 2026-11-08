@@ -23,6 +23,7 @@ class Config:
     servers: list[ServerConfig]
     library_dirs: list[Path] = field(default_factory=list)
     index_path: Path | None = None
+    log_file: Path | None = None
     request_delay: float = 0.0
     timeout: float = 60.0
     user_agent: str = "opds-mirror/0.1"
@@ -30,6 +31,10 @@ class Config:
     @property
     def index_file(self) -> Path:
         return self.index_path or self.output_dir / ".opds-mirror" / "index.sqlite"
+
+    @property
+    def lock_file(self) -> Path:
+        return self.output_dir / ".opds-mirror" / "lock"
 
 
 class ConfigError(ValueError):
@@ -70,6 +75,7 @@ def load_config(path: str | Path) -> Config:
         servers=servers,
         library_dirs=[resolve(p) for p in raw.get("library_dirs", [])],
         index_path=resolve(raw["index_path"]) if raw.get("index_path") else None,
+        log_file=resolve(raw["log_file"]) if raw.get("log_file") else None,
         request_delay=float(raw.get("request_delay", 0.0)),
         timeout=float(raw.get("timeout", 60.0)),
         user_agent=str(raw.get("user_agent", "opds-mirror/0.1")),

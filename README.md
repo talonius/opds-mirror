@@ -11,9 +11,6 @@ Every format a server offers is downloaded (EPUB, PDF, MOBI, AZW3, ...), unless
 you already have that book in that format, in your existing library or from
 another server. Re-running only fetches what's new.
 
-> Status: step 2 of 3. Crawling, downloading and duplicate detection work.
-> Cron hardening (lock file, log file) is next.
-
 ## Install
 
 Needs Python 3.11 or newer.
@@ -66,6 +63,25 @@ start of every run, so you only need `index` to check what it finds.
 `-v` logs every request, `-q` logs only warnings and errors. The exit code is 0
 when everything worked and 1 if any file or server failed.
 
+## Run it from cron
+
+```cron
+# Every night at 3:15
+15 3 * * * /home/brian/opds-mirror/.venv/bin/opds-mirror -q -c /home/brian/opds-mirror/config.toml sync
+```
+
+Use absolute paths, since cron doesn't start in your home folder. With `-q`, the
+command prints nothing unless something goes wrong, so cron only emails you
+about real problems. Set `log_file` in the config for a full record of each
+run (it rotates at 5 MB and keeps five old files).
+
+If a run is still going when the next one starts (likely for the first, big
+sync), the new one notices the lock in `<output_dir>/.opds-mirror/lock` and
+exits straight away. The lock is released automatically if a run crashes.
+
+Exit codes: 0 when everything worked (or another run was already going), 1 when
+any file or server failed, 2 for a bad config.
+
 ## How it works
 
 The crawler starts at each server's root feed and follows every navigation link
@@ -73,7 +89,11 @@ and "next page" link on the same host, visiting each page once. Every book entry
 is recognised by its Atom id, so a book listed under "By Newest", "By Author"
 and "By Tag" is only processed once. Downloads go to
 `<output_dir>/.opds-mirror/tmp/` first and are moved into place only once
-complete, so an interrupted run never leaves half a book behind.
+complete, so an interrupted run never leaves half a book behind. Feeds that
+aren't OPDS (for example a page that wants a login) are skipped quietly.
+
+Every catalog page is fetched on every run, because OPDS has no reliable way to
+ask "what changed since last time". Book files are only downloaded once.
 
 ## Duplicate detection
 

@@ -50,6 +50,10 @@ SKIPPED_NAV_RELS = {
 ISBN_RE = re.compile(r"(97[89][0-9]{10}|[0-9]{9}[0-9Xx])")
 
 
+class NotAFeed(ValueError):
+    """The page isn't an OPDS feed (e.g. a login page). Usually harmless."""
+
+
 @dataclass
 class BookFormat:
     url: str
@@ -106,9 +110,14 @@ def extract_isbns(values: list[str]) -> list[str]:
 
 def parse_feed(xml: bytes, base_url: str) -> Feed:
     """Parse one OPDS page into book entries, navigation links and next-page links."""
-    root = ET.fromstring(xml)
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError as exc:
+        if xml.lstrip()[:15].lower().startswith((b"<!doctype html", b"<html")):
+            raise NotAFeed("got an HTML page, not a feed") from exc
+        raise
     if root.tag != f"{ATOM}feed":
-        raise ValueError(f"not an Atom feed (root element {root.tag!r})")
+        raise NotAFeed(f"not an Atom feed (root element {root.tag!r})")
 
     next_links: list[str] = []
     for link in root.findall(f"{ATOM}link"):
@@ -192,7 +201,10 @@ def crawl(root_url: str, fetch: Fetcher, source: str = "") -> Iterator[Book]:
         except Exception as exc:  # noqa: BLE001 - keep crawling past bad pages
             if url == root_url:
                 raise
-            log.warning("skipping feed %s: %s", url, exc)
+            if isinstance(exc, NotAFeed):
+                log.info("skipping %s: %s", url, exc)
+            else:
+                log.warning("skipping feed %s: %s", url, exc)
             continue
         pages += 1
 
