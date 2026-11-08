@@ -13,13 +13,13 @@ another server. Re-running only fetches what's new.
 
 ## Install
 
-Needs Python 3.11 or newer.
+Uses [uv](https://docs.astral.sh/uv/), which also fetches a suitable Python
+(3.11 or newer) if you don't have one.
 
 ```sh
 git clone https://github.com/talonius/opds-mirror
 cd opds-mirror
-python -m venv .venv
-.venv/bin/pip install .
+uv sync
 ```
 
 ## Configure
@@ -52,25 +52,46 @@ with `?library_id=<library name>` on the end of the URL.
 ## Run
 
 ```sh
-.venv/bin/opds-mirror -c config.toml sync --dry-run   # show what would download
-.venv/bin/opds-mirror -c config.toml sync             # download
+uv run opds-mirror -c config.toml sync --dry-run   # show what would download
+uv run opds-mirror -c config.toml sync             # download
 ```
 
-`opds-mirror -c config.toml index` scans the library folders and updates the
+It reports what it's doing as it goes: each folder it checks, each book it
+downloads or skips, and every few seconds a "still working" line with how far
+it has got, for example:
+
+```
+INFO step 1 of 2: checking the books you already have
+INFO scanning /books/library for the first time; every book gets hashed, which can take a while
+INFO   ...library: 2140 books checked, 2140 new or changed hashed (1.9 GB), now in /books/library/Le Guin, Ursula K
+INFO step 2 of 2: reading the catalogs and downloading new books
+INFO reading catalog calibre (http://calibre.local:8080/opds)
+INFO downloading 'The Dispossessed' (epub) from calibre
+INFO   saved Ursula K. Le Guin/The Dispossessed/The Dispossessed.epub (412.3 KB)
+INFO   ...calibre: 85 catalog pages read, 412 still queued, 3120 books found | this run: 40 downloaded, 3002 skipped, 0 failed
+```
+
+The first run is the slow one: it hashes every book in your library folders and
+reads every page of every catalog. Later runs only hash new or changed files.
+
+`uv run opds-mirror -c config.toml index` scans the library folders and updates the
 duplicate index without downloading anything. `sync` does this itself at the
 start of every run, so you only need `index` to check what it finds.
 
-`-v` logs every request, `-q` logs only warnings and errors. The exit code is 0
+`-v` also logs every request and every file hashed. `-q` prints only warnings
+and errors, which suits cron but means silence during a normal run. The exit code is 0
 when everything worked and 1 if any file or server failed.
 
 ## Run it from cron
 
 ```cron
 # Every night at 3:15
-15 3 * * * /home/brian/opds-mirror/.venv/bin/opds-mirror -q -c /home/brian/opds-mirror/config.toml sync
+15 3 * * * /home/brian/.local/bin/uv run --project /home/brian/opds-mirror opds-mirror -q -c /home/brian/opds-mirror/config.toml sync
 ```
 
-Use absolute paths, since cron doesn't start in your home folder. With `-q`, the
+Use absolute paths, since cron doesn't start in your home folder and usually
+can't find `uv` on its own (`which uv` shows where it is). After `uv sync`,
+`/home/brian/opds-mirror/.venv/bin/opds-mirror` works too, without uv. With `-q`, the
 command prints nothing unless something goes wrong, so cron only emails you
 about real problems. Set `log_file` in the config for a full record of each
 run (it rotates at 5 MB and keeps five old files).
@@ -132,6 +153,6 @@ so after the first scan this is quick.
 ## Development
 
 ```sh
-pip install -e '.[dev]'
-pytest
+uv sync
+uv run pytest
 ```

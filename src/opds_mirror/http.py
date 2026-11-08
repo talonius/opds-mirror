@@ -7,6 +7,7 @@ import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -54,11 +55,13 @@ class Client:
     def fetch(self, url: str) -> bytes:
         self._wait()
         log.debug("GET %s", url)
-        resp = self.session.get(url, timeout=self.timeout)
+        resp = self.session.get(url, timeout=(10, self.timeout))
         resp.raise_for_status()
         return resp.content
 
-    def download(self, url: str, dest: Path) -> DownloadResult:
+    def download(
+        self, url: str, dest: Path, on_chunk: Callable[[int, int | None], None] | None = None
+    ) -> DownloadResult:
         """Stream ``url`` to ``dest`` while hashing it. ``dest`` is removed on failure."""
         self._wait()
         log.debug("GET %s -> %s", url, dest)
@@ -66,14 +69,17 @@ class Client:
         size = 0
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with self.session.get(url, timeout=self.timeout, stream=True) as resp:
+            with self.session.get(url, timeout=(10, self.timeout), stream=True) as resp:
                 resp.raise_for_status()
+                expected = resp.headers.get("Content-Length")
+                total = int(expected) if expected and expected.isdigit() else None
                 with dest.open("wb") as fh:
                     for chunk in resp.iter_content(CHUNK):
                         fh.write(chunk)
                         digest.update(chunk)
                         size += len(chunk)
-                expected = resp.headers.get("Content-Length")
+                        if on_chunk:
+                            on_chunk(size, total)
                 if expected and resp.headers.get("Content-Encoding") is None and int(expected) != size:
                     raise IOError(f"incomplete download: got {size} of {expected} bytes")
                 return DownloadResult(

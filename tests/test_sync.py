@@ -179,3 +179,25 @@ def test_load_config(tmp_path):
     assert config.library_dirs == [(tmp_path / "lib").resolve()]
     assert config.index_file == config.output_dir / ".opds-mirror" / "index.sqlite"
     assert [s.name for s in config.servers] == ["http://a/opds", "b"]
+
+
+def test_progress_lines_are_logged(opds_server, tmp_path, caplog, monkeypatch):
+    import logging
+
+    import opds_mirror.progress as progress
+
+    monkeypatch.setattr(progress.Ticker, "due", lambda self: True)  # report on every step
+    base, _ = opds_server
+    library = tmp_path / "library"
+    library.mkdir()
+    shutil.copy(FILES / "tiny.epub", library / "a.epub")
+    config = make_config(base, tmp_path, library)
+    with caplog.at_level(logging.INFO, logger="opds_mirror"):
+        Mirror(config).run()
+    text = caplog.text
+    assert "scanning" in text and "for the first time" in text
+    assert "books checked" in text
+    assert "catalog pages read" in text and "still queued" in text
+    assert "downloading 'CON' (mobi) from calibre" in text
+    assert "still downloading" in text
+    assert "saved Ann Other/CON_/CON_.mobi" in text

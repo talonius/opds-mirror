@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .keys import normalize_format, title_key
 from .metadata import FileMetadata, metadata_from_path, read_metadata
+from .progress import Ticker, human_size
 
 log = logging.getLogger(__name__)
 
@@ -122,6 +123,12 @@ class BookIndex:
                 (_like_prefix(root),),
             )
         }
+        if known:
+            log.info("checking %s for new or changed books (%d already indexed)", root, len(known))
+        else:
+            log.info("scanning %s for the first time; every book gets hashed, which can take a while", root)
+        ticker = Ticker()
+        hashed_bytes = 0
         present: set[str] = set()
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if not d.startswith(".")]
@@ -132,6 +139,11 @@ class BookIndex:
                 if fmt not in EBOOK_EXTENSIONS:
                     continue
                 stats.scanned += 1
+                if ticker.due():
+                    log.info(
+                        "  ...%s: %d books checked, %d new or changed hashed (%s), now in %s",
+                        root.name, stats.scanned, stats.hashed, human_size(hashed_bytes), here,
+                    )
                 key = str(path)
                 present.add(key)
                 try:
@@ -143,15 +155,20 @@ class BookIndex:
                         guess = metadata_from_path(path)
                         meta.title = meta.title or guess.title
                         meta.authors = meta.authors or guess.authors
+                    log.debug("hashing %s", path)
                     self.add_file(path, sha256_file(path), fmt, meta, origin)
                     stats.hashed += 1
+                    hashed_bytes += st.st_size
                 except OSError as exc:
                     log.warning("could not index %s: %s", path, exc)
         gone = [p for p in known if p not in present]
         with self.db:
             self.db.executemany("DELETE FROM files WHERE path = ?", [(p,) for p in gone])
         stats.removed = len(gone)
-        log.info("indexed %s: %d files, %d hashed, %d removed", root, stats.scanned, stats.hashed, stats.removed)
+        log.info(
+            "finished %s: %d books, %d new or changed, %d no longer there",
+            root, stats.scanned, stats.hashed, stats.removed,
+        )
         return stats
 
     # ---- duplicate checks ---------------------------------------------
