@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/" xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>calibre-all:</id>
+  <title>calibre Library</title>
+  <link rel="start" href="/opds" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="search" title="Search" href="/opds/search/{searchTerms}" type="application/atom+xml"/>
+  <entry>
+    <title>By Newest</title>
+    <id>calibre-navcatalog:newest</id>
+    <link type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="/opds/navcatalog/4f6e6577657374"/>
+  </entry>
+  <entry>
+    <title>By Authors</title>
+    <id>calibre-navcatalog:authors</id>
+    <link type="application/atom+xml;profile=opds-catalog;kind=navigation" href="/opds/navcatalog/4f617574686f7273"/>
+  </entry>
+  <entry>
+    <title>Elsewhere</title>
+    <id>offsite</id>
+    <link type="application/atom+xml;profile=opds-catalog;kind=navigation" href="http://example.invalid/opds"/>
+  </entry>
+</feed>

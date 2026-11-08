@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>urn:uuid:2853dacf-ed79-42f5-8e8a-a7bb3d1ae6a2</id>
+  <link rel="next" title="Next" href="/opds/books/letter/a?offset=60" type="application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"/>
+  <title>Calibre-Web</title>
+  <entry>
+    <title>A Tale: Of Two/Three Cities?</title>
+    <id>urn:uuid:33333333-3333-3333-3333-333333333333</id>
+    <author><name>Charles Dickens</name></author>
+    <dcterms:language>en</dcterms:language>
+    <dc:identifier>9780141439600</dc:identifier>
+    <link type="image/jpeg" href="/opds/cover/3" rel="http://opds-spec.org/image"/>
+    <link type="image/jpeg" href="/opds/cover/3" rel="http://opds-spec.org/image/thumbnail"/>
+    <link rel="http://opds-spec.org/acquisition" href="/opds/download/3/epub/" length="100" title="EPUB" type="application/epub+zip"/>
+    <link rel="http://opds-spec.org/acquisition" href="/opds/download/3/azw3/" length="100" title="AZW3" type="application/octet-stream"/>
+  </entry>
+</feed>

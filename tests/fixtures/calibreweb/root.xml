@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>urn:uuid:2853dacf-ed79-42f5-8e8a-a7bb3d1ae6a2</id>
+  <link rel="self" href="/opds?" type="application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"/>
+  <link rel="start" href="/opds" type="application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"/>
+  <link rel="search" href="/opds/osd" type="application/opensearchdescription+xml"/>
+  <title>Calibre-Web</title>
+  <author><name>Calibre-Web</name><uri>https://github.com/janeczku/calibre-web</uri></author>
+  <entry>
+    <title>Alphabetical Books</title>
+    <link href="/opds/books" type="application/atom+xml;profile=opds-catalog"/>
+    <id>/opds/books</id>
+    <content type="text">Books sorted alphabetically</content>
+  </entry>
+  <entry>
+    <title>Random Books</title>
+    <link href="/opds/discover" type="application/atom+xml;profile=opds-catalog"/>
+    <id>/opds/discover</id>
+  </entry>
+</feed>
