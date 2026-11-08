@@ -13,7 +13,8 @@ from .http import Client
 from .index import BookIndex, format_of
 from .keys import isbn13, normalize_format, title_key
 from .metadata import read_metadata
-from .opds import Book, BookFormat, crawl
+from .opds import Book, BookFormat, CrawlProgress, crawl
+from .progress import Ticker, human_size
 from .paths import book_dir, extension_for, safe_component
 
 log = logging.getLogger(__name__)
@@ -65,22 +66,45 @@ class Mirror:
         self.stats = Stats()
         self.tmp_dir = config.output_dir / STATE_DIR / "tmp"
         self.index: BookIndex | None = None
+        self.ticker = Ticker()
+        self._server = ""
+
+    @property
+    def _skipped(self) -> int:
+        s = self.stats
+        return s.skipped_existing + s.skipped_known + s.skipped_duplicate + s.discarded_duplicate
+
+    def _on_page(self, p: CrawlProgress) -> None:
+        if self.ticker.due():
+            log.info(
+                "  ...%s: %d catalog pages read, %d still queued, %d books found | "
+                "this run: %d downloaded, %d skipped, %d failed",
+                self._server, p.pages, p.queued, p.books,
+                self.stats.downloaded, self._skipped, self.stats.failed,
+            )
 
     def run(self) -> Stats:
         index_file = self.config.index_file
         if self.dry_run and not index_file.exists():
             index_file = Path(":memory:")  # a dry run leaves no trace on disk
         self.index = BookIndex(index_file)
+        log.info(
+            "mirroring %d server(s) into %s%s",
+            len(self.config.servers), self.config.output_dir, " (dry run: nothing will be downloaded)" if self.dry_run else "",
+        )
         try:
+            log.info("step 1 of 2: checking the books you already have")
             refresh_index(self.config, self.index)
+            log.info("step 2 of 2: reading the catalogs and downloading new books")
             if not self.dry_run:
                 self.tmp_dir.mkdir(parents=True, exist_ok=True)
                 for leftover in self.tmp_dir.glob("*.part"):
                     leftover.unlink(missing_ok=True)
             for server in self.config.servers:
-                log.info("crawling %s", server.name)
+                self._server = server.name
+                log.info("reading catalog %s (%s)", server.name, server.url)
                 try:
-                    for book in crawl(server.url, self.client.fetch, source=server.name):
+                    for book in crawl(server.url, self.client.fetch, source=server.name, on_page=self._on_page):
                         self.stats.books += 1
                         self.process_book(book)
                 except Exception as exc:  # noqa: BLE001 - one bad server shouldn't stop the rest
@@ -133,7 +157,7 @@ class Mirror:
         reason = index.find_duplicate(normalize_format(guessed_ext), isbns=feed_isbns, key=key)
         if reason:
             self.stats.skipped_duplicate += 1
-            log.info("skipping %r (%s): %s", book.title, guessed_ext, reason)
+            log.info("skipping %r (%s), already have it: %s", book.title, guessed_ext, reason)
             self._record(fmt.url, book.source, "duplicate", reason)
             return
 
@@ -142,8 +166,16 @@ class Mirror:
             log.info("would download %s", guessed.relative_to(self.config.output_dir))
             return
 
+        label = f"{book.title!r} ({guessed_ext})"
+        log.info("downloading %s from %s", label, book.source)
+
+        def on_chunk(done: int, total: int | None) -> None:
+            if self.ticker.due():
+                of = f" of {human_size(total)}" if total else ""
+                log.info("  ...still downloading %s: %s%s", label, human_size(done), of)
+
         tmp = self.tmp_dir / f"{uuid.uuid4().hex}.part"
-        result = self.client.download(fmt.url, tmp)
+        result = self.client.download(fmt.url, tmp, on_chunk=on_chunk)
         try:
             ext = extension_for(result.content_type or fmt.mime, fmt.url, result.content_disposition)
             final = target_dir / f"{file_stem}.{ext}"
@@ -163,7 +195,7 @@ class Mirror:
             )
             if reason:
                 self.stats.discarded_duplicate += 1
-                log.info("discarded %r (%s): %s", book.title, ext, reason)
+                log.info("  discarded %r (%s), already have it: %s", book.title, ext, reason)
                 self._record(fmt.url, book.source, "duplicate", reason)
                 return
 
@@ -172,7 +204,7 @@ class Mirror:
             index.add_file(final, result.sha256, fmt_key, meta, origin="mirror")
             self._record(fmt.url, book.source, "downloaded")
             self.stats.downloaded += 1
-            log.info("downloaded %s (%d bytes)", final.relative_to(self.config.output_dir), result.size)
+            log.info("  saved %s (%s)", final.relative_to(self.config.output_dir), human_size(result.size))
         finally:
             tmp.unlink(missing_ok=True)
 

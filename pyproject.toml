@@ -14,7 +14,7 @@ dependencies = [
     "pypdf>=4",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["pytest>=7"]
 
 [project.scripts]

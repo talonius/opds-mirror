@@ -181,7 +181,20 @@ def parse_feed(xml: bytes, base_url: str) -> Feed:
 Fetcher = Callable[[str], bytes]
 
 
-def crawl(root_url: str, fetch: Fetcher, source: str = "") -> Iterator[Book]:
+@dataclass
+class CrawlProgress:
+    pages: int = 0
+    queued: int = 0
+    books: int = 0
+    url: str = ""
+
+
+def crawl(
+    root_url: str,
+    fetch: Fetcher,
+    source: str = "",
+    on_page: Callable[[CrawlProgress], None] | None = None,
+) -> Iterator[Book]:
     """Walk every feed reachable from ``root_url`` and yield each book once.
 
     Only follows feed links on the same host as ``root_url``. If the root page
@@ -193,9 +206,11 @@ def crawl(root_url: str, fetch: Fetcher, source: str = "") -> Iterator[Book]:
     seen_urls: set[str] = {urldefrag(root_url).url}
     seen_books: set[str] = set()
     pages = 0
+    progress = CrawlProgress()
 
     while queue:
         url = queue.popleft()
+        log.debug("reading feed %s", url)
         try:
             feed = parse_feed(fetch(url), url)
         except Exception as exc:  # noqa: BLE001 - keep crawling past bad pages
@@ -222,4 +237,8 @@ def crawl(root_url: str, fetch: Fetcher, source: str = "") -> Iterator[Book]:
             seen_urls.add(link)
             queue.append(link)
 
-    log.info("%s: crawled %d feed pages, found %d books", source or root_url, pages, len(seen_books))
+        if on_page:
+            progress.pages, progress.queued, progress.books, progress.url = pages, len(queue), len(seen_books), url
+            on_page(progress)
+
+    log.info("%s: finished reading the catalog: %d feed pages, %d books", source or root_url, pages, len(seen_books))
