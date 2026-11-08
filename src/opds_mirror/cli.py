@@ -8,11 +8,12 @@ import sys
 
 from . import __version__
 from .config import ConfigError, load_config
-from .sync import Mirror
+from .index import BookIndex
+from .sync import Mirror, refresh_index
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="opds-mirror", description=__doc__)
+    parser = argparse.ArgumentParser(prog="opds-mirror", description="Mirror books from OPDS catalogs.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("-c", "--config", default="config.toml", help="path to the TOML config (default: config.toml)")
     parser.add_argument("-v", "--verbose", action="store_true", help="log every request")
@@ -21,6 +22,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     sync = sub.add_parser("sync", help="download every new book from every configured server")
     sync.add_argument("-n", "--dry-run", action="store_true", help="list what would be downloaded without downloading")
+    sync.add_argument(
+        "--recheck",
+        action="store_true",
+        help="re-examine links handled on earlier runs (e.g. after removing books from your library)",
+    )
+
+    sub.add_parser("index", help="scan the library folders and the mirror, and update the duplicate index")
     return parser
 
 
@@ -38,8 +46,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.command == "sync":
-        stats = Mirror(config, dry_run=args.dry_run).run()
+        stats = Mirror(config, dry_run=args.dry_run, recheck=args.recheck).run()
         return 1 if stats.failed or stats.failed_servers else 0
+    if args.command == "index":
+        index = BookIndex(config.index_file)
+        try:
+            refresh_index(config, index)
+        finally:
+            index.close()
+        return 0
     return 2
 
 

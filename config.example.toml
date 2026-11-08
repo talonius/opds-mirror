@@ -3,8 +3,11 @@
 # Where downloaded books go, as <output_dir>/<Author>/<Title>/<Title>.<ext>
 output_dir = "~/Books/opds-mirror"
 
-# Folders of books you already own. Used for duplicate detection (coming in step 2).
+# Folders of books you already own. Books found here are never downloaded.
 library_dirs = ["~/Books/Library"]
+
+# Where the duplicate index lives (default: <output_dir>/.opds-mirror/index.sqlite).
+# index_path = "~/.local/share/opds-mirror/index.sqlite"
 
 # Seconds to wait between requests, to go easy on the servers.
 request_delay = 0.2
