@@ -18,8 +18,8 @@ request_delay = 0.2
 # Seconds before a request times out.
 timeout = 60
 
-# One block per server. For Calibre, add ?library_id=<name> to mirror a
-# library other than the default; use one block per library.
+# One block per server. "/opds" is added if the URL needs it. Every library a
+# Calibre server lists is mirrored, so one block covers all of them.
 [[servers]]
 name = "calibre"
 url = "http://calibre.local:8080/opds"
