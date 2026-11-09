@@ -2,18 +2,32 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import logging
 import time
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
 import requests
+import urllib3
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 log = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def _quiet_insecure(verify: bool):
+    """With verify_ssl = false we log that once per server; urllib3 would warn on every request."""
+    if verify:
+        yield
+        return
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+        yield
 
 CHUNK = 1024 * 256
 
@@ -31,6 +45,7 @@ class Client:
     def __init__(self, user_agent: str, timeout: float = 60.0, delay: float = 0.0, retries: int = 4):
         self.timeout = timeout
         self.delay = delay
+        self.verify = True  # set to False to skip TLS certificate checks
         self._last = 0.0
         self.session = requests.Session()
         self.session.headers["User-Agent"] = user_agent
@@ -55,7 +70,8 @@ class Client:
     def fetch(self, url: str) -> bytes:
         self._wait()
         log.debug("GET %s", url)
-        resp = self.session.get(url, timeout=(10, self.timeout))
+        with _quiet_insecure(self.verify):
+            resp = self.session.get(url, timeout=(10, self.timeout), verify=self.verify)
         resp.raise_for_status()
         return resp.content
 
@@ -69,7 +85,9 @@ class Client:
         size = 0
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with self.session.get(url, timeout=(10, self.timeout), stream=True) as resp:
+            with _quiet_insecure(self.verify), self.session.get(
+                url, timeout=(10, self.timeout), stream=True, verify=self.verify
+            ) as resp:
                 resp.raise_for_status()
                 expected = resp.headers.get("Content-Length")
                 total = int(expected) if expected and expected.isdigit() else None

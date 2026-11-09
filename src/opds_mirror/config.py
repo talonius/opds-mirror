@@ -11,6 +11,7 @@ from pathlib import Path
 class ServerConfig:
     url: str
     name: str = ""
+    verify_ssl: bool = True  # False accepts self-signed or otherwise invalid certificates
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -64,7 +65,10 @@ def load_config(path: str | Path) -> Config:
             entry = {"url": entry}
         if "url" not in entry:
             raise ConfigError("each [[servers]] entry needs a 'url'")
-        servers.append(ServerConfig(url=entry["url"], name=entry.get("name", "")))
+        verify = entry.get("verify_ssl", raw.get("verify_ssl", True))
+        if not isinstance(verify, bool):
+            raise ConfigError("verify_ssl must be true or false")
+        servers.append(ServerConfig(url=entry["url"], name=entry.get("name", ""), verify_ssl=verify))
 
     def resolve(p: str) -> Path:
         q = Path(p).expanduser()
