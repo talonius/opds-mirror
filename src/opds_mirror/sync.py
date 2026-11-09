@@ -13,7 +13,7 @@ from .http import Client
 from .index import BookIndex, format_of
 from .keys import isbn13, normalize_format, title_key
 from .metadata import read_metadata
-from .opds import Book, BookFormat, CrawlProgress, crawl
+from .opds import Book, BookFormat, CrawlProgress, crawl, find_catalog_root
 from .progress import Ticker, human_size
 from .paths import book_dir, extension_for, safe_component
 
@@ -104,7 +104,8 @@ class Mirror:
                 self._server = server.name
                 log.info("reading catalog %s (%s)", server.name, server.url)
                 try:
-                    for book in crawl(server.url, self.client.fetch, source=server.name, on_page=self._on_page):
+                    root = find_catalog_root(server.url, self.client.fetch)
+                    for book in crawl(root, self.client.fetch, source=server.name, on_page=self._on_page):
                         self.stats.books += 1
                         self.process_book(book)
                 except Exception as exc:  # noqa: BLE001 - one bad server shouldn't stop the rest

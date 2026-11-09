@@ -25,7 +25,9 @@ uv sync
 ## Configure
 
 Copy `config.example.toml` to `config.toml` and edit it. List one `[[servers]]`
-block per server. Both Calibre and Calibre-Web serve their catalog at `/opds`:
+block per server. Both Calibre and Calibre-Web serve their catalog at `/opds`;
+if the URL you give isn't a catalog, `/opds` is added for you, so
+`http://calibre.local:8080` works too:
 
 ```toml
 output_dir = "~/Books/opds-mirror"
@@ -46,8 +48,9 @@ library folder works well). Books found there are never downloaded again:
 library_dirs = ["~/Calibre Library", "/mnt/nas/ebooks"]
 ```
 
-A Calibre content server with several libraries needs one block per library,
-with `?library_id=<library name>` on the end of the URL.
+A Calibre content server with several libraries needs only one block: every
+library it lists in its catalog ("Library: <name>") is mirrored, and the log
+says which ones it found.
 
 ## Run
 

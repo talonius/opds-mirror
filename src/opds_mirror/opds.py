@@ -77,6 +77,8 @@ class Feed:
     entries_books: list[Book]
     nav_links: list[str]
     next_links: list[str]
+    libraries: list[tuple[str, str]] = field(default_factory=list)  # (name, url)
+    start_link: str | None = None
 
 
 def _is_atom_feed_type(mime: str) -> bool:
@@ -120,14 +122,18 @@ def parse_feed(xml: bytes, base_url: str) -> Feed:
         raise NotAFeed(f"not an Atom feed (root element {root.tag!r})")
 
     next_links: list[str] = []
+    start_link = None
     for link in root.findall(f"{ATOM}link"):
         rel = (link.get("rel") or "").strip()
         href = link.get("href")
         if href and rel == "next":
             next_links.append(urljoin(base_url, href))
+        elif href and rel == "start":
+            start_link = urljoin(base_url, href)
 
     books: list[Book] = []
     nav_links: list[str] = []
+    libraries: list[tuple[str, str]] = []
     for entry in root.findall(f"{ATOM}entry"):
         formats: list[BookFormat] = []
         entry_nav: list[str] = []
@@ -174,11 +180,37 @@ def parse_feed(xml: bytes, base_url: str) -> Feed:
             # Book entries' feed links (e.g. "more by this author") are skipped,
             # since every book is reachable from navigation anyway.
             nav_links.extend(entry_nav)
+            # Calibre lists its other libraries as "Library: <name>" entries.
+            if entry_nav and _text(entry, f"{ATOM}id").startswith("calibre-library:"):
+                name = _text(entry, f"{ATOM}title").removeprefix("Library:").strip()
+                libraries.append((name, entry_nav[0]))
 
-    return Feed(entries_books=books, nav_links=nav_links, next_links=next_links)
+    return Feed(entries_books=books, nav_links=nav_links, next_links=next_links, libraries=libraries, start_link=start_link)
 
 
 Fetcher = Callable[[str], bytes]
+
+
+def find_catalog_root(url: str, fetch: Fetcher) -> str:
+    """Return ``url`` if it serves an OPDS feed; otherwise try it with ``/opds`` added.
+
+    So ``http://calibre.local:8080`` works as well as ``http://calibre.local:8080/opds``.
+    If neither works, the error from the URL as given is raised.
+    """
+    try:
+        parse_feed(fetch(url), url)
+        return url
+    except Exception as first_error:  # noqa: BLE001
+        parts = urlparse(url)
+        if parts.path.rstrip("/").endswith("/opds"):
+            raise
+        alternative = parts._replace(path=parts.path.rstrip("/") + "/opds").geturl()
+        try:
+            parse_feed(fetch(alternative), alternative)
+        except Exception:  # noqa: BLE001
+            raise first_error from None
+        log.info("%s isn't an OPDS catalog; using %s", url, alternative)
+        return alternative
 
 
 @dataclass
@@ -222,6 +254,10 @@ def crawl(
                 log.warning("skipping feed %s: %s", url, exc)
             continue
         pages += 1
+        if url == root_url and feed.start_link:
+            # The root's own "start" URL (Calibre: /opds?library_id=<default>)
+            # is the same catalog under another address; don't read it twice.
+            seen_urls.add(urldefrag(feed.start_link).url)
 
         for book in feed.entries_books:
             if book.id in seen_books:
@@ -229,6 +265,10 @@ def crawl(
             seen_books.add(book.id)
             book.source = source or root_url
             yield book
+
+        for name, link in feed.libraries:
+            if urldefrag(link).url not in seen_urls:
+                log.info("%s: found library %r, adding it to the mirror", source or root_url, name)
 
         for link in feed.next_links + feed.nav_links:
             link = urldefrag(link).url
