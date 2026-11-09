@@ -1,6 +1,8 @@
 import shutil
 from pathlib import Path
 
+import pytest
+
 from conftest import book_bytes
 
 from opds_mirror.config import Config, ServerConfig, load_config
@@ -201,3 +203,58 @@ def test_progress_lines_are_logged(opds_server, tmp_path, caplog, monkeypatch):
     assert "downloading 'CON' (mobi) from calibre" in text
     assert "still downloading" in text
     assert "saved Ann Other/CON_/CON_.mobi" in text
+
+
+@pytest.fixture
+def https_opds_server(tmp_path):
+    """The fake OPDS server behind HTTPS with a self-signed certificate."""
+    import ssl
+    import subprocess
+    import threading
+    from http.server import ThreadingHTTPServer
+
+    import conftest
+
+    cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+    try:
+        subprocess.run(
+            ["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+             "-subj", "/CN=localhost", "-keyout", str(key), "-out", str(cert)],
+            check=True, capture_output=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        pytest.skip("openssl not available to make a test certificate")
+    conftest.Handler.hits = []
+    server = ThreadingHTTPServer(("127.0.0.1", 0), conftest.Handler)
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.load_cert_chain(cert, key)
+    server.socket = ctx.wrap_socket(server.socket, server_side=True)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        yield f"https://127.0.0.1:{server.server_address[1]}"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_self_signed_certificate_needs_verify_ssl_false(https_opds_server, tmp_path):
+    client = Client("test", timeout=5, retries=0)
+    config = Config(output_dir=tmp_path / "out", servers=[ServerConfig(url=f"{https_opds_server}/calibre/opds", name="tls")])
+    stats = Mirror(config, client=client).run()
+    assert stats.failed_servers == ["tls"]  # rejected by default
+
+    config.servers[0].verify_ssl = False
+    stats = Mirror(config, client=Client("test", timeout=5, retries=0)).run()
+    assert stats.failed_servers == []
+    assert stats.downloaded == 3
+
+
+def test_verify_ssl_in_config(tmp_path):
+    cfg = tmp_path / "config.toml"
+    cfg.write_text(
+        'output_dir = "o"\n[[servers]]\nurl = "https://a/opds"\nverify_ssl = false\n'
+        '[[servers]]\nurl = "https://b/opds"\n'
+    )
+    assert [s.verify_ssl for s in load_config(cfg).servers] == [False, True]
+    cfg.write_text('output_dir = "o"\nverify_ssl = false\n[[servers]]\nurl = "https://a/opds"\n')
+    assert load_config(cfg).servers[0].verify_ssl is False

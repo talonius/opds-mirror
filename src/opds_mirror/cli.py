@@ -35,6 +35,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="re-examine links handled on earlier runs (e.g. after removing books from your library)",
     )
+    sync.add_argument(
+        "-k",
+        "--insecure",
+        action="store_true",
+        help="don't check TLS certificates on any server (same as verify_ssl = false everywhere)",
+    )
 
     sub.add_parser("index", help="scan the library folders and the mirror, and update the duplicate index")
     return parser
@@ -71,6 +77,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         with RunLock(config.lock_file):
             if args.command == "sync":
+                if args.insecure:
+                    for server in config.servers:
+                        server.verify_ssl = False
                 stats = Mirror(config, dry_run=args.dry_run, recheck=args.recheck).run()
                 if stats.failed or stats.failed_servers:
                     log.warning("finished with problems: %s", stats.summary())

@@ -48,6 +48,17 @@ library folder works well). Books found there are never downloaded again:
 library_dirs = ["~/Calibre Library", "/mnt/nas/ebooks"]
 ```
 
+For an HTTPS server with a self-signed or otherwise invalid certificate, add
+`verify_ssl = false` to its block (or once at the top for every server), or
+run `sync --insecure` to skip the check for this run only. The log notes each
+server it isn't checking.
+
+```toml
+[[servers]]
+url = "https://books.example.lan/opds"
+verify_ssl = false
+```
+
 A Calibre content server with several libraries needs only one block: every
 library it lists in its catalog ("Library: <name>") is mirrored, and the log
 says which ones it found.

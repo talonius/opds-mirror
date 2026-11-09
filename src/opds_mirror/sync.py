@@ -102,6 +102,9 @@ class Mirror:
                     leftover.unlink(missing_ok=True)
             for server in self.config.servers:
                 self._server = server.name
+                self.client.verify = server.verify_ssl
+                if not server.verify_ssl:
+                    log.info("%s: not checking its TLS certificate (verify_ssl = false)", server.name)
                 log.info("reading catalog %s (%s)", server.name, server.url)
                 try:
                     root = find_catalog_root(server.url, self.client.fetch)

@@ -26,4 +26,5 @@ url = "http://calibre.local:8080/opds"
 
 [[servers]]
 name = "calibre-web"
+# verify_ssl = false   # accept a self-signed or invalid HTTPS certificate
 url = "http://calibre-web.local:8083/opds"
